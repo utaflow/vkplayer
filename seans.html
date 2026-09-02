@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>СЕАНС — смотрим видео вместе</title>
+<style>
+  :root{
+    --bg:#12151d;
+    --bg-elevated:#181d28;
+    --surface:#1e2434;
+    --surface-2:#252c40;
+    --border:#2c3348;
+    --text:#eef1f6;
+    --text-dim:#96a0b5;
+    --accent:#e8a33d;
+    --accent-dim:#b9812c;
+    --accent-soft:rgba(232,163,61,0.16);
+    --danger:#e2665f;
+    --radius:14px;
+    --radius-sm:9px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{height:100vh;height:100dvh;overflow:hidden;}
+  .screen{height:100%;width:100%;}
+  [hidden]{display:none !important;}
+
+  button{font:inherit;cursor:pointer;}
+  input{font:inherit;}
+  ::selection{background:var(--accent-soft);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .btn{
+    border:1px solid transparent;
+    border-radius:var(--radius-sm);
+    padding:10px 18px;
+    font-size:14.5px;
+    font-weight:600;
+    transition:transform .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+  .btn-primary{
+    background:var(--accent);
+    color:#1a1305;
+  }
+  .btn-primary:hover{background:#f0af51;}
+  .btn-primary:active{transform:scale(0.97);}
+  .btn-ghost{
+    background:transparent;
+    color:var(--text-dim);
+    border-color:var(--border);
+  }
+  .btn-ghost:hover{color:var(--text); border-color:var(--accent-dim);}
+  .btn-sm{padding:7px 12px; font-size:13px;}
+  .btn-icon{
+    padding:10px 14px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn{
+    background:transparent;
+    border:none;
+    color:var(--text-dim);
+    font-size:20px;
+    line-height:1;
+    padding:4px 8px;
+    border-radius:6px;
+  }
+  .icon-btn:hover{color:var(--text); background:rgba(255,255,255,0.06);}
+
+  .form-error{
+    color:var(--danger);
+    font-size:13.5px;
+    margin:2px 0 0;
+    background:rgba(226,102,95,0.1);
+    border:1px solid rgba(226,102,95,0.35);
+    padding:8px 10px;
+    border-radius:var(--radius-sm);
+  }
+
+  /* ---------- film strip decoration ---------- */
+  .filmstrip{
+    height:16px;
+    flex:0 0 auto;
+    background-color:var(--accent-dim);
+    background-image:radial-gradient(circle at 9px 8px, var(--bg) 3px, transparent 3.5px);
+    background-size:22px 16px;
+  }
+
+  /* ---------- AUTH SCREEN ---------- */
+  .auth-screen{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse at top, rgba(232,163,61,0.08), transparent 55%),
+      var(--bg);
+  }
+  .auth-screen .filmstrip{flex:0 0 16px;}
+  .auth-card-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    overflow-y:auto;
+  }
+  .auth-card{
+    width:100%;
+    max-width:380px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:32px 28px;
+    animation:cardIn .4s ease;
+  }
+  @keyframes cardIn{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .logo{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:34px;
+    letter-spacing:3px;
+    margin:0 0 6px;
+    text-align:center;
+    color:var(--text);
+  }
+  .logo span{color:var(--accent);}
+  .tagline{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:14px;
+    margin:0 0 26px;
+    line-height:1.5;
+  }
+  .auth-form{display:flex; flex-direction:column; gap:14px;}
+  .field{display:flex; flex-direction:column; gap:6px; font-size:13.5px; color:var(--text-dim);}
+  .field input{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:11px 12px;
+    color:var(--text);
+    transition:border-color .15s ease;
+  }
+  .field input:focus{border-color:var(--accent); outline:none;}
+  .auth-actions{display:flex; gap:10px; margin-top:6px;}
+  .auth-actions .btn{flex:1;}
+
+  /* ---------- MAIN SCREEN ---------- */
+  .main-screen{
+    display:flex;
+    flex-direction:column;
+    animation:fadeIn .35s ease;
+  }
+  @keyframes fadeIn{
+    from{opacity:0;}
+    to{opacity:1;}
+  }
+  .topbar{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 18px;
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{
+    font-family:Georgia,"Times New Roman",serif;
+    letter-spacing:2px;
+    color:var(--accent);
+    font-size:19px;
+  }
+  .user-box{display:flex; align-items:center; gap:10px;}
+  .greeting{font-size:14px; color:var(--text-dim); white-space:nowrap;}
+  .avatar-btn{
+    border:none; background:transparent; padding:0;
+    border-radius:50%;
+    line-height:0;
+    transition:box-shadow .15s ease;
+  }
+  .avatar-btn:hover{box-shadow:0 0 0 2px var(--accent-dim);}
+  .avatar-img{border-radius:50%; object-fit:cover; display:block;}
+  .avatar-fallback{
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:14px;
+  }
+
+  .avatar-banner{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 18px;
+    background:var(--accent-soft);
+    border-bottom:1px solid var(--border);
+    font-size:13.5px;
+    animation:fadeIn .25s ease;
+  }
+  .avatar-banner span{flex:1; color:var(--text);}
+
+  .workspace{
+    flex:1 1 auto;
+    display:flex;
+    flex-direction:row;
+    min-height:0;
+    overflow:hidden;
+  }
+
+  .player-pane{
+    flex:0 0 70%;
+    max-width:70%;
+    display:flex;
+    flex-direction:column;
+    border-right:1px solid var(--border);
+    min-width:0;
+  }
+  .video-frame{
+    flex:1 1 auto;
+    background:#000;
+    min-height:0;
+    position:relative;
+  }
+  .video-frame iframe{
+    width:100%; height:100%; border:0; display:block;
+  }
+  .video-placeholder{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center;
+    color:var(--text-dim);
+    padding:20px;
+    gap:6px;
+  }
+  .video-placeholder p{margin:0;}
+  .video-placeholder .hint{font-size:12.5px; opacity:.8;}
+
+  .video-command{
+    flex:0 0 auto;
+    display:flex;
+    gap:8px;
+    padding:10px 12px;
+    background:var(--bg-elevated);
+    border-top:1px solid var(--border);
+  }
+  .video-command input{
+    flex:1;
+    min-width:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:9px 12px;
+    color:var(--text);
+  }
+  .video-command input:focus{border-color:var(--accent); outline:none;}
+  #videoError{margin:0 12px 10px;}
+
+  .chat-pane{
+    flex:0 0 30%;
+    max-width:30%;
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    background:var(--bg);
+  }
+  .chat-messages{
+    flex:1 1 auto;
+    overflow-y:auto;
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    min-height:0;
+  }
+  .chat-message{
+    display:flex;
+    gap:9px;
+    animation:msgIn .18s ease;
+  }
+  @keyframes msgIn{
+    from{opacity:0; transform:translateY(6px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .chat-message.own{flex-direction:row;}
+  .chat-avatar{flex:0 0 auto;}
+  .chat-avatar .avatar-img, .chat-avatar .avatar-fallback{width:32px; height:32px;}
+  .chat-content{
+    min-width:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:8px 11px;
+    flex:1 1 auto;
+  }
+  .chat-message.own .chat-content{
+    background:var(--accent-soft);
+    border-color:rgba(232,163,61,0.35);
+  }
+  .chat-head{
+    display:flex; align-items:baseline; gap:8px; margin-bottom:2px;
+  }
+  .chat-name{font-size:13px; font-weight:700;}
+  .chat-time{font-size:11px; color:var(--text-dim);}
+  .chat-text{
+    font-size:14px;
+    line-height:1.4;
+    word-break:break-word;
+    white-space:pre-wrap;
+  }
+  .chat-system{
+    align-self:center;
+    color:var(--text-dim);
+    font-size:12.5px;
+    background:var(--surface);
+    border-radius:20px;
+    padding:5px 12px;
+    animation:msgIn .18s ease;
+  }
+  .chat-input{
+    flex:0 0 auto;
+    display:flex;
+    gap:8px;
+    padding:10px 12px;
+    background:var(--bg-elevated);
+    border-top:1px solid var(--border);
+  }
+  .chat-input input{
+    flex:1;
+    min-width:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    color:var(--text);
+  }
+  .chat-input input:focus{border-color:var(--accent); outline:none;}
+
+  /* ---------- MOBILE / PORTRAIT LAYOUT ---------- */
+  @media (orientation: portrait){
+    .workspace{flex-direction:column;}
+    .player-pane{
+      flex:0 0 25%;
+      max-width:100%;
+      border-right:0;
+      border-bottom:1px solid var(--border);
+    }
+    .chat-pane{
+      flex:1 1 auto;
+      max-width:100%;
+    }
+    .video-command{padding:7px 10px;}
+    .video-command input{padding:7px 10px; font-size:13px;}
+    .video-command .btn{padding:7px 12px; font-size:13px;}
+    .greeting{display:none;}
+    .brand{font-size:17px;}
+    .tagline{font-size:13px;}
+  }
+
+  @media (max-width:420px){
+    .auth-card{padding:26px 20px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ AUTH SCREEN ============ -->
+  <section id="authScreen" class="screen auth-screen">
+    <div class="filmstrip"></div>
+    <div class="auth-card-wrap">
+      <div class="auth-card">
+        <h1 class="logo">СЕ<span>А</span>НС</h1>
+        <p class="tagline">Один экран на всех — смотрите видео из VK и обсуждайте его в общем чате</p>
+        <form id="authForm" class="auth-form" novalidate>
+          <label class="field">
+            <span>Имя пользователя</span>
+            <input type="text" id="usernameInput" autocomplete="username" placeholder="например, alex_99">
+          </label>
+          <label class="field">
+            <span>Пароль</span>
+            <input type="password" id="passwordInput" autocomplete="current-password" placeholder="не короче 4 символов">
+          </label>
+          <p id="authError" class="form-error" hidden></p>
+          <div class="auth-actions">
+            <button type="button" id="loginBtn" class="btn btn-primary">Войти</button>
+            <button type="button" id="registerBtn" class="btn btn-ghost">Зарегистрироваться</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="filmstrip"></div>
+  </section>
+
+  <!-- ============ MAIN SCREEN ============ -->
+  <section id="mainScreen" class="screen main-screen" hidden>
+    <header class="topbar">
+      <div class="brand">СЕАНС</div>
+      <div class="user-box">
+        <span id="greeting" class="greeting"></span>
+        <button id="avatarBtn" class="avatar-btn" title="Изменить аватар"></button>
+        <button id="logoutBtn" class="btn btn-ghost btn-sm">Выйти</button>
+      </div>
+    </header>
+
+    <div id="avatarBanner" class="avatar-banner" hidden>
+      <span>Добавьте фото профиля, чтобы вас было проще узнать в чате</span>
+      <button id="avatarBannerBtn" class="btn btn-primary btn-sm">Загрузить фото</button>
+      <button id="avatarBannerClose" class="icon-btn" aria-label="Закрыть подсказку">×</button>
+    </div>
+    <input type="file" id="avatarInput" accept="image/*" hidden>
+
+    <div class="workspace">
+      <div class="player-pane">
+        <div class="video-frame" id="videoFrame">
+          <div class="video-placeholder" id="videoPlaceholder">
+            <p>Видео ещё не запущено</p>
+            <p class="hint">Вставьте код iframe от VK или прямую ссылку на видео ниже и нажмите «Запустить»</p>
+          </div>
+        </div>
+        <p id="videoError" class="form-error" hidden></p>
+        <form id="videoForm" class="video-command" novalidate>
+          <input type="text" id="videoInput" placeholder="/video вставьте код iframe или ссылку" autocomplete="off">
+          <button type="submit" class="btn btn-primary">Запустить</button>
+        </form>
+      </div>
+
+      <div class="chat-pane">
+        <div class="chat-messages" id="chatMessages"></div>
+        <form id="chatForm" class="chat-input" novalidate>
+          <input type="text" id="chatInput" placeholder="Написать сообщение…" autocomplete="off" maxlength="1000">
+          <button type="submit" class="btn btn-primary btn-icon" aria-label="Отправить">➤</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- storage keys ----------
+  var LS_USERS   = 'vk_seans_users';
+  var LS_SESSION = 'vk_seans_session';
+  var LS_CHAT    = 'vk_seans_chat';
+  var LS_VIDEO   = 'vk_seans_video';
+  var LS_DISMISS_PREFIX = 'vk_seans_avatar_dismissed_';
+
+  // ---------- dom refs ----------
+  var authScreen = document.getElementById('authScreen');
+  var mainScreen = document.getElementById('mainScreen');
+
+  var usernameInput = document.getElementById('usernameInput');
+  var passwordInput = document.getElementById('passwordInput');
+  var authError = document.getElementById('authError');
+  var loginBtn = document.getElementById('loginBtn');
+  var registerBtn = document.getElementById('registerBtn');
+
+  var greeting = document.getElementById('greeting');
+  var avatarBtn = document.getElementById('avatarBtn');
+  var avatarInput = document.getElementById('avatarInput');
+  var logoutBtn = document.getElementById('logoutBtn');
+
+  var avatarBanner = document.getElementById('avatarBanner');
+  var avatarBannerBtn = document.getElementById('avatarBannerBtn');
+  var avatarBannerClose = document.getElementById('avatarBannerClose');
+
+  var videoFrame = document.getElementById('videoFrame');
+  var videoPlaceholder = document.getElementById('videoPlaceholder');
+  var videoForm = document.getElementById('videoForm');
+  var videoInput = document.getElementById('videoInput');
+  var videoError = document.getElementById('videoError');
+
+  var chatMessagesEl = document.getElementById('chatMessages');
+  var chatForm = document.getElementById('chatForm');
+  var chatInput = document.getElementById('chatInput');
+
+  var currentUser = null;
+
+  // ---------- storage helpers ----------
+  function loadUsers(){
+    try{ return JSON.parse(localStorage.getItem(LS_USERS)) || []; }
+    catch(e){ return []; }
+  }
+  function saveUsers(list){ localStorage.setItem(LS_USERS, JSON.stringify(list)); }
+
+  function loadChat(){
+    try{ return JSON.parse(localStorage.getItem(LS_CHAT)) || []; }
+    catch(e){ return []; }
+  }
+  function saveChat(list){ localStorage.setItem(LS_CHAT, JSON.stringify(list)); }
+
+  function getSession(){ return localStorage.getItem(LS_SESSION); }
+  function setSession(username){ localStorage.setItem(LS_SESSION, username); }
+  function clearSession(){ localStorage.removeItem(LS_SESSION); }
+
+  function findUser(username){
+    var users = loadUsers();
+    for(var i=0;i<users.length;i++){
+      if(users[i].username.toLowerCase() === username.toLowerCase()) return users[i];
+    }
+    return null;
+  }
+
+  function updateUser(username, patch){
+    var users = loadUsers();
+    for(var i=0;i<users.length;i++){
+      if(users[i].username.toLowerCase() === username.toLowerCase()){
+        Object.assign(users[i], patch);
+        saveUsers(users);
+        return users[i];
+      }
+    }
+    return null;
+  }
+
+  // ---------- small utils ----------
+  function escapeHTML(str){
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function hashColor(str){
+    var hash = 0;
+    for(var i=0;i<str.length;i++){
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    var hue = Math.abs(hash) % 360;
+    return 'hsl(' + hue + ' 60% 55%)';
+  }
+
+  function getInitials(username){
+    var clean = username.trim();
+    var parts = clean.split(/[\s_\-.]+/).filter(Boolean);
+    if(parts.length >= 2){
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return clean.slice(0,2).toUpperCase();
+  }
+
+  function avatarHTML(user, size){
+    size = size || 32;
+    if(user.avatar){
+      return '<img class="avatar-img" style="width:' + size + 'px;height:' + size + 'px" src="' +
+        user.avatar + '" alt="' + escapeHTML(user.username) + '">';
+    }
+    var initials = getInitials(user.username || '?');
+    var color = hashColor(user.username || '?');
+    return '<div class="avatar-fallback" style="width:' + size + 'px;height:' + size + 'px;background:' +
+      color + '">' + escapeHTML(initials) + '</div>';
+  }
+
+  function formatTime(ts){
+    try{
+      return new Date(ts).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+    }catch(e){ return ''; }
+  }
+
+  // ---------- auth screen ----------
+  function showAuthError(msg){
+    authError.textContent = msg;
+    authError.hidden = false;
+  }
+  function clearAuthError(){
+    authError.hidden = true;
+    authError.textContent = '';
+  }
+
+  function handleRegister(){
+    clearAuthError();
+    var username = usernameInput.value.trim();
+    var password = passwordInput.value;
+
+    if(!username || !password){
+      showAuthError('Заполните имя пользователя и пароль.');
+      return;
+    }
+    if(username.length < 2){
+      showAuthError('Имя пользователя слишком короткое.');
+      return;
+    }
+    if(password.length < 4){
+      showAuthError('Пароль должен содержать не менее 4 символов.');
+      return;
+    }
+    if(findUser(username)){
+      showAuthError('Пользователь с таким именем уже существует.');
+      return;
+    }
+
+    var newUser = { username: username, password: password, avatar: null };
+    var users = loadUsers();
+    users.push(newUser);
+    saveUsers(users);
+    setSession(newUser.username);
+    enterApp(newUser);
+  }
+
+  function handleLogin(){
+    clearAuthError();
+    var username = usernameInput.value.trim();
+    var password = passwordInput.value;
+
+    if(!username || !password){
+      showAuthError('Введите имя пользователя и пароль.');
+      return;
+    }
+    var user = findUser(username);
+    if(!user || user.password !== password){
+      showAuthError('Неверное имя пользователя или пароль.');
+      return;
+    }
+    setSession(user.username);
+    enterApp(user);
+  }
+
+  loginBtn.addEventListener('click', handleLogin);
+  registerBtn.addEventListener('click', handleRegister);
+  document.getElementById('authForm').addEventListener('submit', function(e){ e.preventDefault(); handleLogin(); });
+
+  // ---------- entering / leaving the app ----------
+  function enterApp(user){
+    currentUser = user;
+    authScreen.hidden = true;
+    mainScreen.hidden = false;
+    usernameInput.value = '';
+    passwordInput.value = '';
+    clearAuthError();
+
+    greeting.textContent = 'Привет, ' + user.username + '!';
+    renderAvatarButton();
+    maybeShowAvatarBanner();
+    renderChatAll();
+    restoreVideo();
+    chatInput.focus();
+  }
+
+  function doLogout(){
+    clearSession();
+    currentUser = null;
+    mainScreen.hidden = true;
+    authScreen.hidden = false;
+  }
+  logoutBtn.addEventListener('click', doLogout);
+
+  // ---------- avatar ----------
+  function renderAvatarButton(){
+    avatarBtn.innerHTML = avatarHTML(currentUser, 34);
+  }
+
+  function maybeShowAvatarBanner(){
+    var dismissed = localStorage.getItem(LS_DISMISS_PREFIX + currentUser.username);
+    if(!currentUser.avatar && !dismissed){
+      avatarBanner.hidden = false;
+    } else {
+      avatarBanner.hidden = true;
+    }
+  }
+
+  function dismissAvatarBanner(){
+    localStorage.setItem(LS_DISMISS_PREFIX + currentUser.username, '1');
+    avatarBanner.hidden = true;
+  }
+
+  avatarBannerClose.addEventListener('click', dismissAvatarBanner);
+  avatarBtn.addEventListener('click', function(){ avatarInput.click(); });
+  avatarBannerBtn.addEventListener('click', function(){ avatarInput.click(); });
+
+  function resizeImageToDataURL(file, callback){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var size = 128;
+        var canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        var ctx = canvas.getContext('2d');
+        var minSide = Math.min(img.width, img.height);
+        var sx = (img.width - minSide) / 2;
+        var sy = (img.height - minSide) / 2;
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+        callback(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = function(){ callback(null); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function(){ callback(null); };
+    reader.readAsDataURL(file);
+  }
+
+  avatarInput.addEventListener('change', function(){
+    var file = avatarInput.files && avatarInput.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      avatarInput.value = '';
+      return;
+    }
+    resizeImageToDataURL(file, function(dataUrl){
+      if(!dataUrl) return;
+      currentUser = updateUser(currentUser.username, { avatar: dataUrl }) || currentUser;
+      renderAvatarButton();
+      avatarBanner.hidden = true;
+      avatarInput.value = '';
+    });
+  });
+
+  // ---------- video ----------
+  function extractVideoSrc(raw){
+    raw = raw.trim();
+    raw = raw.replace(/^\/video\s*/i, '');
+    if(!raw) return null;
+
+    var iframeMatch = raw.match(/<iframe[^>]*\bsrc=["']([^"']+)["']/i);
+    if(iframeMatch) return iframeMatch[1];
+
+    var srcAttrMatch = raw.match(/\bsrc=["']([^"']+)["']/i);
+    if(srcAttrMatch) return srcAttrMatch[1];
+
+    if(/^https?:\/\//i.test(raw)) return raw;
+
+    return null;
+  }
+
+  function isValidUrl(str){
+    try{
+      var u = new URL(str);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    }catch(e){ return false; }
+  }
+
+  function showVideoError(msg){
+    videoError.textContent = msg;
+    videoError.hidden = false;
+  }
+  function clearVideoError(){
+    videoError.hidden = true;
+    videoError.textContent = '';
+  }
+
+  function renderVideo(src){
+    videoFrame.innerHTML = '';
+    if(!src){
+      var ph = document.createElement('div');
+      ph.className = 'video-placeholder';
+      ph.innerHTML = '<p>Видео ещё не запущено</p><p class="hint">Вставьте код iframe от VK или прямую ссылку на видео ниже и нажмите «Запустить»</p>';
+      videoFrame.appendChild(ph);
+      return;
+    }
+    var iframe = document.createElement('iframe');
+    iframe.src = src;
+    iframe.width = '100%';
+    iframe.height = '100%';
+    iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock;');
+    iframe.setAttribute('frameborder', '0');
+    iframe.allowFullscreen = true;
+    videoFrame.appendChild(iframe);
+  }
+
+  function restoreVideo(){
+    var saved = localStorage.getItem(LS_VIDEO);
+    renderVideo(saved || null);
+  }
+
+  function handleVideoSubmit(e){
+    e.preventDefault();
+    clearVideoError();
+    var raw = videoInput.value;
+    if(!raw.trim()){
+      showVideoError('Вставьте код iframe или ссылку на видео.');
+      return;
+    }
+    var src = extractVideoSrc(raw);
+    if(!src || !isValidUrl(src)){
+      showVideoError('Не удалось распознать ссылку. Проверьте, что вставлен корректный код iframe от VK или прямая ссылка на видео.');
+      return;
+    }
+    localStorage.setItem(LS_VIDEO, src);
+    renderVideo(src);
+    videoInput.value = '';
+    addSystemMessage(currentUser.username + ' запустил(а) новое видео');
+  }
+  videoForm.addEventListener('submit', handleVideoSubmit);
+
+  // ---------- chat ----------
+  function scrollChatBottom(){
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  function buildMessageNode(m){
+    if(m.system){
+      var sys = document.createElement('div');
+      sys.className = 'chat-system';
+      sys.textContent = m.text;
+      return sys;
+    }
+    var row = document.createElement('div');
+    row.className = 'chat-message' + (currentUser && m.username === currentUser.username ? ' own' : '');
+
+    var avatarWrap = document.createElement('div');
+    avatarWrap.className = 'chat-avatar';
+    avatarWrap.innerHTML = avatarHTML({ username: m.username, avatar: m.avatar }, 32);
+
+    var content = document.createElement('div');
+    content.className = 'chat-content';
+
+    var head = document.createElement('div');
+    head.className = 'chat-head';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'chat-name';
+    nameSpan.style.color = hashColor(m.username);
+    nameSpan.textContent = m.username;
+
+    var timeSpan = document.createElement('span');
+    timeSpan.className = 'chat-time';
+    timeSpan.textContent = formatTime(m.timestamp);
+
+    head.appendChild(nameSpan);
+    head.appendChild(timeSpan);
+
+    var textDiv = document.createElement('div');
+    textDiv.className = 'chat-text';
+    textDiv.textContent = m.text;
+
+    content.appendChild(head);
+    content.appendChild(textDiv);
+    row.appendChild(avatarWrap);
+    row.appendChild(content);
+    return row;
+  }
+
+  function renderChatAll(){
+    chatMessagesEl.innerHTML = '';
+    var messages = loadChat();
+    var frag = document.createDocumentFragment();
+    messages.forEach(function(m){ frag.appendChild(buildMessageNode(m)); });
+    chatMessagesEl.appendChild(frag);
+    scrollChatBottom();
+  }
+
+  function appendMessage(m){
+    chatMessagesEl.appendChild(buildMessageNode(m));
+    scrollChatBottom();
+  }
+
+  function addSystemMessage(text){
+    var messages = loadChat();
+    var msg = { system: true, text: text, timestamp: Date.now() };
+    messages.push(msg);
+    saveChat(messages);
+    appendMessage(msg);
+  }
+
+  function handleChatSubmit(e){
+    e.preventDefault();
+    var text = chatInput.value.trim();
+    if(!text || !currentUser) return;
+    var messages = loadChat();
+    var msg = {
+      username: currentUser.username,
+      avatar: currentUser.avatar,
+      text: text,
+      timestamp: Date.now()
+    };
+    messages.push(msg);
+    saveChat(messages);
+    appendMessage(msg);
+    chatInput.value = '';
+    chatInput.focus();
+  }
+  chatForm.addEventListener('submit', handleChatSubmit);
+
+  // ---------- keep multiple tabs / windows in sync ----------
+  window.addEventListener('storage', function(e){
+    if(!currentUser) return;
+    if(e.key === LS_CHAT){
+      renderChatAll();
+    } else if(e.key === LS_VIDEO){
+      renderVideo(e.newValue || null);
+    } else if(e.key === LS_USERS){
+      var refreshed = findUser(currentUser.username);
+      if(refreshed){
+        currentUser = refreshed;
+        renderAvatarButton();
+      }
+    }
+  });
+
+  // ---------- boot ----------
+  (function boot(){
+    var sessionUsername = getSession();
+    if(sessionUsername){
+      var user = findUser(sessionUsername);
+      if(user){
+        enterApp(user);
+        return;
+      }
+      clearSession();
+    }
+    authScreen.hidden = false;
+    mainScreen.hidden = true;
+  })();
+
+})();
+</script>
+</body>
+</html>
